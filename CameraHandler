@@ -1,0 +1,47 @@
+#to_enable_camera
+import cv2
+import time
+import platform
+
+def is_raspberry_pi():
+    return platform.system() == 'Linux' and platform.machine().startswith(('arm', 'aarch'))
+
+class CameraHandler:
+    def _init_(self):  # <-- Fixed this
+        self.is_pi = is_raspberry_pi()
+        self.camera = None
+
+        if self.is_pi:
+            from picamera2 import Picamera2
+            self.camera = Picamera2()
+            self.camera.start()
+        else:
+            self.camera = cv2.VideoCapture(0)
+            if not self.camera.isOpened():
+                raise Exception("Could not open webcam")
+
+    def take_picture(self, filename="water_meter.jpg"):
+        if self.is_pi:
+            image = self.camera.capture_array()
+            cv2.imwrite(filename, image)
+        else:
+            ret, frame = self.camera.read()
+            if ret:
+                cv2.imwrite(filename, frame)
+            else:
+                return False
+        print(f"Image saved as {filename}")
+        return True
+
+    def close(self):
+        if self.is_pi:
+            self.camera.close()
+        else:
+            self.camera.release()
+
+
+# ✅ Add this part to run the code
+if _name_ == "_main_":
+    cam = CameraHandler()
+    cam.take_picture("test_image.jpg")
+    cam.close()
